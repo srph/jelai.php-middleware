@@ -16,6 +16,7 @@ class Factory {
 	/**
 	 * Adds an interceptor to our middleware
 	 *
+	 * @see $this->throwNumericInterceptor
 	 * @param string $key Name of the filter (for accessibility)
 	 * @param Closure|object $callback The function to be executed
 	 */
@@ -29,9 +30,14 @@ class Factory {
 			throw new Exception('Filter already exists');
 		}
 
-		$this->interceptors[$key] = $callback instanceof Closure
-			? $callback
-			: ( (is_object($callback) ? $callback : new $callback )->handle() );
+		// The interceptor accessor must never be a numeric key
+		// because it has no sense; and it may cause unexpected behavior.
+		if ( is_numeric($key) )
+		{
+			$this->throwNumericInterceptor();
+		}
+
+		$this->interceptors[$key] = $callback;
 	}
 
 	/**
@@ -63,6 +69,7 @@ class Factory {
 	/**
 	 * Runs the interceptor
 	 *
+	 * @see $this->throwNumericInterceptor
 	 * @throws InvalidArgumentException When a numeric value is passed
 	 * @throws OutOfBoundsException When interceptor does not exist
 	 * @param string $interceptor Interceptor to be ran
@@ -74,7 +81,7 @@ class Factory {
 		// We provide this exception in-case the developer tries to do so.
 		if ( is_numeric($interceptor) )
 		{
-			throw new InvalidArgumentException('Provided interceptor must be a string, not a numeric value.');
+			$this->throwNumericInterceptor();
 		}
 
 		// We'll throw an exception in-case the provided interceptor is non-existent.
@@ -83,8 +90,38 @@ class Factory {
 			throw new OutOfBoundsException('Invalid middlware interceptor.');
 		}
 
-		// Yolo pls swag.
-		$this->interceptors[$interceptor]();
+		// We no longer need the provided $interceptor key, so
+		// we assign the `$interceptor` variable to the callback or
+		// the value of the given key.
+		$interceptor = $this->interceptors[$interceptor];
+
+		// We execute the handler accordingly. We either call the `handle`
+		// method, or instantiate and call the said method, or the execute
+		// the interceptor if a Closure.
+		if ( $interceptor instanceof Closure)
+		{
+			$interceptor();
+		}
+		else if ( is_object($interceptor) )
+		{
+			$interceptor->handle();
+		}
+		elseif ( is_string($interceptor) )
+		{
+			(new $interceptor)->handle();
+		}
+	}
+
+	/**
+	 * Let's throw an error about the provided interceptor being
+	 * a numeric value instead of a string
+	 *
+	 * @throws InvalidArgumentException
+	 * @return void
+	 */
+	protected function throwNumericInterceptor()
+	{
+		throw new InvalidArgumentException('Provided interceptor must be a string, not a numeric value.');
 	}
 
 }
