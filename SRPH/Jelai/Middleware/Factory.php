@@ -1,4 +1,4 @@
-<?php namespace Core\Middleware;
+<?php namespace SRPH\Jelai\Middleware;
 
 use Closure;
 use OutOfBoundsException;
