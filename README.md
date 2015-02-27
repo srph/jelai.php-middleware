@@ -45,7 +45,7 @@ This example *redirects* the user to ```index.php``` if the *user* is a *guest*.
 $auth = new MyAuthManager;
 $request = new MyRequestManager;
 
-$middleware->add('auth', function() use ($auth) {
+$middleware->add('auth', function() use ($auth, $request) {
 	if ( $auth->guest() )
 	{
 		return $request->to('index.php');
